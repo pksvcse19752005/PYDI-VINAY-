@@ -21,10 +21,20 @@ EMAIL_PASSWORD = "pxbntsohbnbojhtw"  # Use your app password securely
 def home():
     return render_template('attendance.html')
 
-@app.route('/reset-password')
+@app.route('/reset-password', methods=['GET', 'POST'])
 def reset_password():
-    # You can create a proper reset page/template if you wish!
-    return "<h2>Password Reset Page - Feature under construction.</h2>"
+    message = None
+    if request.method == 'POST':
+        new_password = request.form.get('new_password')
+        confirm_password = request.form.get('confirm_password')
+        if not new_password or not confirm_password:
+            message = "Both password fields are required."
+        elif new_password != confirm_password:
+            message = "Passwords do not match."
+        else:
+            users['admin'] = new_password
+            message = "Password successfully changed!"
+    return render_template('reset_password.html', message=message)
 
 @app.route('/api/login', methods=['POST'])
 def login():
@@ -43,15 +53,17 @@ def forgot_password():
         try:
             send_reset_email()
             return jsonify({"success": True})
-        except Exception as e:
+        except Exception:
             return jsonify({"success": False, "error": "Failed to send reset email"})
     return jsonify({"success": False, "error": "Username not found"})
 
 def send_reset_email():
-    msg = MIMEText('Click this link to reset your password: https://attendancemanagementsystem1-6.onrender.com/reset-password')
+    reset_link = 'http://localhost:5000/reset-password'  # Use your deployed URL in production
+    html_content = f'<p>Click <a href="{reset_link}">here</a> to reset your password.</p>'
+    msg = MIMEText(html_content, 'html')
     msg['Subject'] = 'Password Reset Link'
     msg['From'] = EMAIL_ADDRESS
-    msg['To'] = EMAIL_ADDRESS  # Change to recipient's email when implementing actual reset
+    msg['To'] = EMAIL_ADDRESS  # Change to recipient email in production
     server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
     server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
     server.send_message(msg)
@@ -95,4 +107,4 @@ def export_absentees():
 
 if __name__ == '__main__':
     app.run(port=5000, debug=True)
-
+    

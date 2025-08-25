@@ -7,7 +7,7 @@ from io import StringIO
 app = Flask(__name__)
 CORS(app)
 
-# Simple user authentication (use a DB for real usage)
+# User data store (use a DB for production)
 users = {
     "admin": "adminpassword"
 }
@@ -15,7 +15,7 @@ users = {
 attendance_data = {}  # {date: {regno: {"name": name, "status": status}}}
 
 EMAIL_ADDRESS = "vinaypydi85@gmail.com"
-EMAIL_PASSWORD = "pxbntsohbnbojhtw"
+EMAIL_PASSWORD = "pxbntsohbnbojhtw"  # Use app password securely, env vars recommended
 
 @app.route('/')
 def home():
@@ -27,13 +27,13 @@ def reset_password():
     if request.method == 'POST':
         new_password = request.form.get('new_password')
         confirm_password = request.form.get('confirm_password')
-        if new_password != confirm_password:
+        if not new_password or not confirm_password:
+            message = "Both password fields are required."
+        elif new_password != confirm_password:
             message = "Passwords do not match."
-        elif not new_password:
-            message = "Password cannot be empty."
         else:
             users['admin'] = new_password
-            message = "Password successfully reset for 'admin' user!"
+            message = "Password successfully changed!"
     return render_template('reset_password.html', message=message)
 
 @app.route('/api/login', methods=['POST'])
@@ -53,7 +53,7 @@ def forgot_password():
         try:
             send_reset_email()
             return jsonify({"success": True})
-        except Exception as e:
+        except Exception:
             return jsonify({"success": False, "error": "Failed to send reset email"})
     return jsonify({"success": False, "error": "Username not found"})
 
@@ -61,7 +61,7 @@ def send_reset_email():
     msg = MIMEText('Click this link to reset your password: https://attendancemanagementsystem1-6.onrender.com/reset-password')
     msg['Subject'] = 'Password Reset Link'
     msg['From'] = EMAIL_ADDRESS
-    msg['To'] = EMAIL_ADDRESS  # For demo, send to self. To use real emails, set this.
+    msg['To'] = EMAIL_ADDRESS  # Change to user email if available
     server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
     server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
     server.send_message(msg)
@@ -105,3 +105,4 @@ def export_absentees():
 
 if __name__ == '__main__':
     app.run(port=5000, debug=True)
+    

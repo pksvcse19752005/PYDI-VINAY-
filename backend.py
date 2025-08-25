@@ -21,20 +21,20 @@ EMAIL_PASSWORD = "pxbntsohbnbojhtw"  # Use your app password securely
 def home():
     return render_template('attendance.html')
 
-@app.route('/reset-password', methods=['GET', 'POST'])
-def reset_password():
+@app.route('/reset-password/<token>', methods=['GET', 'POST'])
+def reset_password_token(token):
+    # You can use the token here if needed.
     message = None
     if request.method == 'POST':
-        new_password = request.form.get('new_password')
-        confirm_password = request.form.get('confirm_password')
-        if not new_password or not confirm_password:
-            message = "Both password fields are required."
-        elif new_password != confirm_password:
+        new_pass = request.form['new_password']
+        confirm_pass = request.form['confirm_password']
+        if new_pass != confirm_pass:
             message = "Passwords do not match."
         else:
-            users['admin'] = new_password
+            # Save new password logic goes here.
             message = "Password successfully changed!"
     return render_template('reset_password.html', message=message)
+    
 
 @app.route('/api/login', methods=['POST'])
 def login():

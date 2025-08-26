@@ -3,6 +3,8 @@ from flask_cors import CORS
 import smtplib
 from email.mime.text import MIMEText
 from io import StringIO
+import random
+import string
 
 app = Flask(__name__)
 CORS(app)
@@ -21,20 +23,10 @@ EMAIL_PASSWORD = "pxbntsohbnbojhtw"  # Use your app password securely
 def home():
     return render_template('attendance.html')
 
-@app.route('/reset-password/<token>', methods=['GET', 'POST'])
-def reset_password_token(token):
-    # You can use the token here if needed.
-    message = None
-    if request.method == 'POST':
-        new_pass = request.form['new_password']
-        confirm_pass = request.form['confirm_password']
-        if new_pass != confirm_pass:
-            message = "Passwords do not match."
-        else:
-            # Save new password logic goes here.
-            message = "Password successfully changed!"
-    return render_template('reset_password.html', message=message)
-    
+@app.route('/reset-password')
+def reset_password():
+    # This page can be implemented if needed
+    return "<h2>Password Reset Page - Feature under construction.</h2>"
 
 @app.route('/api/login', methods=['POST'])
 def login():
@@ -45,23 +37,28 @@ def login():
         return jsonify({"success": True})
     return jsonify({"success": False, "error": "Invalid username or password"})
 
+def generate_temp_password(length=8):
+    chars = string.ascii_letters + string.digits + string.punctuation
+    return ''.join(random.choice(chars) for _ in range(length))
+
 @app.route('/api/forgot_password', methods=['POST'])
 def forgot_password():
     data = request.json
     username = data.get('username')
     if username in users:
         try:
-            send_reset_email()
+            temp_password = generate_temp_password()
+            # Update user's password to the temporary password
+            users[username] = temp_password
+            send_temp_password_email(temp_password)
             return jsonify({"success": True})
-        except Exception:
+        except Exception as e:
             return jsonify({"success": False, "error": "Failed to send reset email"})
     return jsonify({"success": False, "error": "Username not found"})
 
-def send_reset_email():
-    reset_link = 'http://localhost:5000/reset-password'  # Use your deployed URL in production
-    html_content = f'<p>Click <a href="{reset_link}">here</a> to reset your password.</p>'
-    msg = MIMEText(html_content, 'html')
-    msg['Subject'] = 'Password Reset Link'
+def send_temp_password_email(temp_password):
+    msg = MIMEText(f'Your temporary password is: {temp_password}\nPlease use this password to login and change it immediately.')
+    msg['Subject'] = 'Your Temporary Password'
     msg['From'] = EMAIL_ADDRESS
     msg['To'] = EMAIL_ADDRESS  # Change to recipient email in production
     server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
@@ -104,7 +101,6 @@ def export_absentees():
         as_attachment=True,
         download_name=f"absentees-{date}.txt"
     )
-
-if __name__ == '__main__':
+    if __name__ == '__main__':
     app.run(port=5000, debug=True)
     

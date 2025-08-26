@@ -2,16 +2,17 @@ from flask import Flask, request, jsonify, send_file, render_template
 from flask_cors import CORS
 import smtplib
 from email.mime.text import MIMEText
-from io import StringIO
+from io import StringIO, BytesIO
 import random
 import string
+import pandas as pd
 
 app = Flask(__name__)
 CORS(app)
 
-# Simple user authentication; for production, use a database
+# Default user credentials
 users = {
-    "admin": "adminpassword"
+    "DEPTCSE": "pksv"
 }
 
 attendance_data = {}  # {date: {regno: {"name": name, "status": status}}}
@@ -25,7 +26,6 @@ def home():
 
 @app.route('/reset-password')
 def reset_password():
-    # You can create a proper reset page/template if you wish!
     return "<h2>Password Reset Page - Feature under construction.</h2>"
 
 @app.route('/api/login', methods=['POST'])
@@ -48,7 +48,6 @@ def forgot_password():
     if username in users:
         try:
             temp_password = generate_temp_password()
-            # Update user's password to temporary password
             users[username] = temp_password
             send_temp_password_email(temp_password)
             return jsonify({"success": True})
@@ -90,16 +89,25 @@ def export_absentees():
     date = request.args.get('date')
     if not date or date not in attendance_data:
         return "No attendance data found for this date", 404
+
     absentees = []
     for regno, info in attendance_data[date].items():
         if info.get('status') != 'Present':
-            absentees.append(f"{regno} - {info.get('name')} - {info.get('status')}")
-    absentees_str = "\n".join(absentees)
+            absentees.append([regno, info.get('name'), info.get('status')])
+
+    df = pd.DataFrame(absentees, columns=["Reg No", "Name", "Status"])
+
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False, sheet_name='Absentees')
+    output.seek(0)
+
+    filename = f"absentees-{date}.xlsx"
     return send_file(
-        StringIO(absentees_str),
-        mimetype="text/plain",
+        output,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         as_attachment=True,
-        download_name=f"absentees-{date}.txt"
+        download_name=filename
     )
 
 if __name__ == '__main__':

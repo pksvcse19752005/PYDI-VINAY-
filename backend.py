@@ -100,9 +100,16 @@ def export_absentees():
     # Create Excel writer with multiple sheets for each section
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        workbook = writer.book
+        header_format = workbook.add_format({'bold': True, 'font_color': 'blue', 'font_size': 14})
         for section, rows in absentees_dict.items():
             df = pd.DataFrame(rows, columns=["Reg No", "Name", "Status"])
-            df.to_excel(writer, sheet_name=f"Section {section}", index=False)
+            df.to_excel(writer, sheet_name=f"Section {section}", startrow=2, index=False)
+
+            worksheet = writer.sheets[f"Section {section}"]
+            # Write the date header in the sheet at row 0 col 0
+            worksheet.write(0, 0, f"Attendance Date: {date}", header_format)
+
     output.seek(0)
 
     filename = "absentees_and_permissions.xlsx"
@@ -115,4 +122,4 @@ def export_absentees():
 
 if __name__ == '__main__':
     app.run(port=5000, debug=True)
-    
+            

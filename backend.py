@@ -25,7 +25,7 @@ def home():
 
 @app.route('/reset-password')
 def reset_password():
-    # This page can be implemented if needed
+    # You can create a proper reset page/template if you wish!
     return "<h2>Password Reset Page - Feature under construction.</h2>"
 
 @app.route('/api/login', methods=['POST'])
@@ -48,7 +48,7 @@ def forgot_password():
     if username in users:
         try:
             temp_password = generate_temp_password()
-            # Update user's password to the temporary password
+            # Update user's password to temporary password
             users[username] = temp_password
             send_temp_password_email(temp_password)
             return jsonify({"success": True})
@@ -101,6 +101,7 @@ def export_absentees():
         as_attachment=True,
         download_name=f"absentees-{date}.txt"
     )
-    if __name__ == '__main__':
+
+if __name__ == '__main__':
     app.run(port=5000, debug=True)
     

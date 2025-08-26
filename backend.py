@@ -14,7 +14,7 @@ users = {
     "DEPTCSE": "pksv"
 }
 
-attendance_data = {}  # {date: {regno: {"name": name, "status": status}}}
+attendance_data = {}  # {date: {regno: {"name": name, "status": status, "section": section}}}
 
 EMAIL_ADDRESS = "vinaypydi85@gmail.com"
 EMAIL_PASSWORD = "pxbntsohbnbojhtw"  # Use your app password securely
@@ -89,20 +89,23 @@ def export_absentees():
     if not date or date not in attendance_data:
         return "No attendance data found for this date", 404
 
-    absentees = []
+    absentees_dict = {}
+    # Group absentees and permission by section
     for regno, info in attendance_data[date].items():
-        # Include both Absent and Permission statuses
-        if info.get('status') in ['Absent', 'Permission']:
-            absentees.append([regno, info.get('name'), info.get('status')])
+        status = info.get('status')
+        section = info.get('section', 'Unknown')
+        if status in ['Absent', 'Permission']:
+            absentees_dict.setdefault(section, []).append([regno, info.get('name'), status])
 
-    df = pd.DataFrame(absentees, columns=["Reg No", "Name", "Status"])
-
+    # Create Excel writer with multiple sheets for each section
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        df.to_excel(writer, index=False, sheet_name='Absentees')
+        for section, rows in absentees_dict.items():
+            df = pd.DataFrame(rows, columns=["Reg No", "Name", "Status"])
+            df.to_excel(writer, sheet_name=f"Section {section}", index=False)
     output.seek(0)
 
-    filename = f"absentees-{date}.xlsx"
+    filename = "absentees_and_permissions.xlsx"
     return send_file(
         output,
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

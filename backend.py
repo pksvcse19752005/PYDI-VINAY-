@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify, send_file, render_template
 from flask_cors import CORS
 import smtplib
 from email.mime.text import MIMEText
-from io import StringIO, BytesIO
+from io import BytesIO
 import random
 import string
 import pandas as pd
@@ -10,7 +10,6 @@ import pandas as pd
 app = Flask(__name__)
 CORS(app)
 
-# Default user credentials
 users = {
     "DEPTCSE": "pksv"
 }
@@ -59,7 +58,7 @@ def send_temp_password_email(temp_password):
     msg = MIMEText(f'Your temporary password is: {temp_password}\nPlease use this password to login and change it immediately.')
     msg['Subject'] = 'Your Temporary Password'
     msg['From'] = EMAIL_ADDRESS
-    msg['To'] = EMAIL_ADDRESS  # Change to recipient email in production
+    msg['To'] = EMAIL_ADDRESS  
     server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
     server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
     server.send_message(msg)
@@ -92,7 +91,8 @@ def export_absentees():
 
     absentees = []
     for regno, info in attendance_data[date].items():
-        if info.get('status') != 'Present':
+        # Include both Absent and Permission statuses
+        if info.get('status') in ['Absent', 'Permission']:
             absentees.append([regno, info.get('name'), info.get('status')])
 
     df = pd.DataFrame(absentees, columns=["Reg No", "Name", "Status"])

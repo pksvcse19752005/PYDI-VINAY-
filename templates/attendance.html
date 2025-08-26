@@ -1,9 +1,10 @@
-                <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
     <title>Attendance Management Login</title>
     <style>
+        /* Same styles as before with color updates */
         body { font-family: Arial, sans-serif; background: #f7f7f7;}
         .container { max-width: 920px; margin: 32px auto; background: #fff; padding: 24px; border-radius: 14px; box-shadow: 0 2px 8px rgba(0,0,0,.08);}
         .loginbox { max-width: 340px; margin: 60px auto; background: #fff; padding: 24px; border-radius: 16px;}
@@ -23,7 +24,9 @@
         .active { border: 2px solid #222; box-shadow: 0 0 8px #ddd;}
         .hidden { display:none; }
         #dateInput { padding:6px; border-radius:6px; border:1px solid #ccc; margin-right:10px;}
-        #saveBtn, #downloadBtn { background:#795548; color:#fff; padding:8px 20px; border-radius:6px; border:none; cursor:pointer; margin:14px 4px;}
+        .btn-wide { padding: 8px 20px; border-radius:6px; border:none; cursor:pointer; margin:14px 4px; }
+        #saveAllBtn { background:#4a654a; color:#fff;}
+        #downloadBtn { background:#795548; color:#fff;}
         .error { color: #f44336;}
         .success { color: #16c79a;}
         .section-buttons button { margin-right: 10px; }
@@ -36,9 +39,9 @@
     <h2>Admin Login</h2>
     <div id="logmsg"></div>
     <label for="username">Username:</label>
-    <input type="text" id="username" autocomplete="username" value="DEPTCSE" />
+    <input type="text" id="username" autocomplete="username" />
     <label for="password">Password:</label>
-    <input type="password" id="password" autocomplete="current-password" value="pksv" />
+    <input type="password" id="password" autocomplete="current-password" />
     <button onclick="login()">Login</button>
     <br />
     <a href="#" onclick="forgotpw();return false;" style="color:#298afb;">Forgot Password?</a>
@@ -50,8 +53,9 @@
     <div id="savemsg"></div>
     <label for="dateInput">Date:</label>
     <input type="date" id="dateInput" />
-    <button id="saveBtn">Save Attendance</button>
-    <button id="downloadBtn">Download Absentees</button>
+    <!-- Save all sections button -->
+    <button id="saveAllBtn" class="btn-wide">Save All Sections</button>
+    <button id="downloadBtn" class="btn-wide">Download Absentees & Permissions</button>
     <br /><br />
     <label><b>Check Attendance Status for a Person:</b></label><br />
     <input type="text" id="checkRegInput" placeholder="Registration Number (e.g. 23KD1A05D3)" style="width:220px; display:inline-block;" />
@@ -185,7 +189,7 @@ function login() {
 }
 
 function forgotpw() {
-    var u = document.getElementById('username').value.trim() || 'DEPTCSE';
+    var u = document.getElementById('username').value.trim() || '';
     fetch('/api/forgot_password', {
         method:'POST',
         headers:{'Content-Type':'application/json'},
@@ -210,7 +214,7 @@ function renderTable(date) {
     let tbody = document.getElementById('attBody');
     tbody.innerHTML = '';
     sectionStudents[currentSection].forEach(([reg,name]) => {
-        let stat = (attendance[date] && attendance[date][reg]) || "Present";  /* default Present */
+        let stat = (attendance[date] && attendance[date][reg]) || "Present";
         let tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${reg}</td>
@@ -238,34 +242,42 @@ document.getElementById('dateInput').onchange = function() {
     renderTable(this.value);
 };
 
-document.getElementById('saveBtn').onclick = function() {
+document.getElementById('saveAllBtn').onclick = function() {
     let date = document.getElementById('dateInput').value || new Date().toISOString().split('T')[0];
-    let attData = {};
-    sectionStudents[currentSection].forEach(([reg,name]) => {
-        attData[reg] = {name: name, status: (attendance[date] && attendance[date][reg]) || "Present"};
-    });
+    let allAttendance = {};
+    for(let sec of ['A','B','C','D']){
+        sectionStudents[sec].forEach(([reg, name]) => {
+            let status = (attendance[date] && attendance[date][reg]) || "Present";
+            if(!allAttendance[date]) allAttendance[date] = {};
+            allAttendance[reg] = {name: name, status: status};
+        });
+    }
     fetch('/api/save', {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({date: date, attendance: attData})
+        body: JSON.stringify({date: date, attendance: allAttendance})
     }).then(resp => resp.json()).then(data => {
         if(data.success){
-            document.getElementById('savemsg').innerHTML = '<div class="success">Attendance saved for '+date+'</div>';
-            setTimeout(() => { document.getElementById('savemsg').innerHTML=''; }, 3000);
+            document.getElementById('savemsg').innerHTML = '<div class="success">All sections attendance saved for ' + date + '</div>';
+            setTimeout(() => { document.getElementById('savemsg').innerHTML = ''; }, 3000);
         }
     });
 };
 
 document.getElementById('downloadBtn').onclick = function() {
     let date = document.getElementById('dateInput').value || new Date().toISOString().split('T')[0];
-    let attData = {};
-    sectionStudents[currentSection].forEach(([reg,name]) => {
-        attData[reg] = {name: name, status: (attendance[date] && attendance[date][reg]) || "Present"};
-    });
+    // Save all sections before download
+    let allAttendance = {};
+    for(let sec of ['A','B','C','D']){
+        sectionStudents[sec].forEach(([reg, name]) => {
+            let status = (attendance[date] && attendance[date][reg]) || "Present";
+            allAttendance[reg] = {name: name, status: status, section: sec};
+        });
+    }
     fetch('/api/save', {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({date: date, attendance: attData})
+        body: JSON.stringify({date: date, attendance: allAttendance})
     }).then(resp => resp.json()).then(data => {
         if(data.success){
             window.open('/api/export_absentees/?date=' + date, '_blank');
@@ -280,7 +292,7 @@ function checkStatus() {
         document.getElementById('checkResult').innerHTML = '<span class="error">Enter reg. number and date</span>';
         return;
     }
-    fetch('/api/check?regno='+reg+'&date='+date)
+    fetch(`/api/check?regno=${reg}&date=${date}`)
     .then(resp => resp.json())
     .then(data => {
         document.getElementById('checkResult').innerText = `${reg} was marked as '${data.status}' on ${date}`;

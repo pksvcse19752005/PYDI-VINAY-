@@ -36,9 +36,9 @@
     <h2>Admin Login</h2>
     <div id="logmsg"></div>
     <label for="username">Username:</label>
-    <input type="text" id="username" autocomplete="username">
+    <input type="text" id="username" autocomplete="username" value="DEPTCSE">
     <label for="password">Password:</label>
-    <input type="password" id="password" autocomplete="current-password">
+    <input type="password" id="password" autocomplete="current-password" value="pksv">
     <button onclick="login()">Login</button>
     <br>
     <a href="#" onclick="forgotpw();return false;" style="color:#298afb;">Forgot Password?</a>
@@ -250,10 +250,10 @@ document.getElementById('saveBtn').onclick = function() {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
         body: JSON.stringify({date: date, attendance: attData})
-    }).then(resp=>resp.json()).then(data=>{
+    }).then(resp => resp.json()).then(data => {
         if(data.success){
             document.getElementById('savemsg').innerHTML = '<div class="success">Attendance saved for '+date+'</div>';
-            setTimeout(()=>{ document.getElementById('savemsg').innerHTML=''; }, 3000);
+            setTimeout(() => { document.getElementById('savemsg').innerHTML=''; }, 3000);
         }
     });
 };
@@ -268,9 +268,9 @@ document.getElementById('downloadBtn').onclick = function() {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
         body: JSON.stringify({date: date, attendance: attData})
-    }).then(resp=>resp.json()).then(data=>{
+    }).then(resp => resp.json()).then(data => {
         if(data.success){
-            window.open('/api/export_absentees/' + date, '_blank');
+            window.open('/api/export_absentees/?date=' + date, '_blank');
         }
     });
 };
@@ -299,6 +299,4 @@ window.onload = function() {
 };
 </script>
 </body>
-  </html>
-
-  
+</html>
